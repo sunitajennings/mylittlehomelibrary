@@ -56,8 +56,12 @@ public class BookController {
 		return assembler.toModel(book);
 	}
 	
-	@PostMapping("/books")
+	@PostMapping("/book")
 	ResponseEntity<?> addBook(@RequestBody Book bookToAdd) {
+		
+		if (bookToAdd.getIsbn() == null) {
+			return ResponseEntity.badRequest().build();
+		}
 		
 		Book book = repository.findByIsbn(bookToAdd.getIsbn()).orElse(bookToAdd);
 		
@@ -68,9 +72,10 @@ public class BookController {
 				.body(entity);
 	}
 	
-	@PutMapping("/books/{isbn}")
-	ResponseEntity<?> updateBookDetails(@RequestBody Book updatedBookDetails, @PathVariable String lookupIsbn) {
-		Book updatedBook = repository.findByIsbn(lookupIsbn)
+	@PutMapping("/book/{isbn}")
+	ResponseEntity<?> updateBookDetails(@RequestBody Book updatedBookDetails, @PathVariable String isbn) {
+		
+		Book updatedBook = repository.findByIsbn(isbn)
 				.map(book -> {
 					
 					String title = updatedBookDetails.getTitle();
@@ -80,14 +85,14 @@ public class BookController {
 					if (!StringUtils.isEmpty(author)) book.setAuthor(updatedBookDetails.getAuthor());
 					if (!StringUtils.isEmpty(title)) book.setTitle(updatedBookDetails.getTitle());
 					
-					if (StringUtils.isEmpty(newIsbn)) book.setIsbn(lookupIsbn);
+					if (StringUtils.isEmpty(newIsbn)) book.setIsbn(isbn);
 					else book.setIsbn(newIsbn);
 					
 					return book;
 				})
 				.orElseGet(() -> {
 					if (StringUtils.isEmpty(updatedBookDetails.getIsbn())) 
-						updatedBookDetails.setIsbn(lookupIsbn);
+						updatedBookDetails.setIsbn(isbn);
 					
 					return repository.save(updatedBookDetails);
 				});
@@ -103,7 +108,7 @@ public class BookController {
 				.body(entity);
 	}
 	
-	@DeleteMapping("/book/{id}")
+	@DeleteMapping("/book/{isbn}")
 	ResponseEntity<?> removeBook(@PathVariable String isbn) {
 		try {
 			EntityModel<Book> foundbook = findByIsbn(isbn);
